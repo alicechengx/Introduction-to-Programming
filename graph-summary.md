@@ -1,36 +1,34 @@
-# 🕸️ Graph Theory Summary
+# Graph Algorithm Selection Guide
 
-# 图算法选择决策指南
+## I. Core Decision Dimensions
 
-## 一、核心判断维度
+### 1. Query Scope
+- **Single-source query**: Only need to start from one or a few nodes
+- **Global query**: Need to start from all/many nodes
 
-### 1. 查询范围
-- **单源查询**：只需要从一个或少数几个点出发
-- **全局查询**：需要从所有点/大量点出发
+### 2. Graph Properties
+- **Directed Acyclic Graph (DAG)**: Has topological ordering
+- **General graph**: May contain cycles
 
-### 2. 图的性质
-- **有向无环图(DAG)**：有拓扑序
-- **一般图**：可能有环
-
-### 3. 数据规模与性能要求
-- 点数 N、边数 M
-- 是否需要位运算优化
+### 3. Scale & Performance Requirements
+- Number of nodes N, edges M
+- Whether bitwise optimization is needed
 
 ---
 
-## 二、算法选择决策树
+## II. Algorithm Decision Tree
 
-### 场景1：单源/少量源查询
+### Scenario 1: Single-source / Few Sources Query
 
 ```
-问题：从点 s 出发能到达哪些点？
-      从点 s 到点 t 是否存在路径？
+Problem: Which nodes are reachable from node s?
+         Does a path exist from s to t?
 ```
 
-**✅ 使用：普通 DFS/BFS**
+**✅ Use: Regular DFS/BFS**
 
 ```cpp
-// DFS版本
+// DFS version
 bool visited[MAXN];
 void dfs(int u) {
     visited[u] = true;
@@ -39,7 +37,7 @@ void dfs(int u) {
     }
 }
 
-// BFS版本
+// BFS version
 void bfs(int start) {
     queue<int> q;
     q.push(start);
@@ -56,28 +54,28 @@ void bfs(int start) {
 }
 ```
 
-**时间复杂度**：O(N + M)  
-**空间复杂度**：O(N)  
-**适用场景**：
-- 单源最短路（BFS用于无权图）
-- 连通性判断
-- 路径搜索
-- 偶尔查询某个点的可达性
+**Time Complexity**: O(N + M)  
+**Space Complexity**: O(N)  
+**Use Cases**:
+- Single-source shortest path (BFS for unweighted graphs)
+- Connectivity checking
+- Path searching
+- Occasional reachability queries
 
 ---
 
-### 场景2：全局查询 + 一般图
+### Scenario 2: Global Query + General Graph
 
 ```
-问题：每个点分别能到达多少个点？（图可能有环）
+Problem: How many nodes can each node reach? (Graph may contain cycles)
 ```
 
-**✅ 使用：DFS/BFS + 记忆化（不用bitset）**
+**✅ Use: DFS/BFS + Memoization (without bitset)**
 
 ```cpp
 vector<int> reachable[MAXN];
 bool visited[MAXN];
-bool in_stack[MAXN];  // 检测环
+bool in_stack[MAXN];  // Detect cycles
 
 void dfs(int u) {
     if (visited[u]) return;
@@ -87,7 +85,7 @@ void dfs(int u) {
     reachable[u].push_back(u);
     
     for (int v : graph[u]) {
-        if (in_stack[v]) continue;  // 有环，跳过
+        if (in_stack[v]) continue;  // Skip if cycle detected
         dfs(v);
         for (int x : reachable[v]) {
             reachable[u].push_back(x);
@@ -98,22 +96,22 @@ void dfs(int u) {
 }
 ```
 
-**时间复杂度**：O(N × M)  
-**为什么不用bitset**：一般图没有好的处理顺序，bitset优势不明显  
-**适用场景**：
-- 中小规模图（N ≤ 5000）
-- 可能有环的图
-- 需要存储具体可达节点（不只是计数）
+**Time Complexity**: O(N × M)  
+**Why not bitset**: General graphs lack good processing order, bitset advantage is minimal  
+**Use Cases**:
+- Small to medium graphs (N ≤ 5000)
+- Graphs with potential cycles
+- Need to store actual reachable nodes (not just count)
 
 ---
 
-### 场景3：全局查询 + DAG + 大规模
+### Scenario 3: Global Query + DAG + Large Scale
 
 ```
-问题：每个点分别能到达多少个点？（DAG，N ≤ 30000）
+Problem: How many nodes can each node reach? (DAG, N ≤ 30000)
 ```
 
-**✅ 使用：拓扑排序 + Bitset**
+**✅ Use: Topological Sort + Bitset**
 
 ```cpp
 bitset<MAXN> reachable[MAXN];
@@ -136,29 +134,29 @@ void topoSort() {
 }
 ```
 
-**时间复杂度**：O(M × N/64)  
-**关键优势**：
-- 拓扑序保证每个点只处理一次
-- Bitset将集合合并优化64倍
-- 64倍常数优化是AC关键！
+**Time Complexity**: O(M × N/64)  
+**Key Advantages**:
+- Topological order ensures each node is processed once
+- Bitset optimizes set merge by 64x
+- 64x constant optimization is the key to AC!
 
-**适用场景**：
-- DAG上的传递闭包
-- 大规模可达性统计
-- 依赖关系分析
+**Use Cases**:
+- Transitive closure on DAG
+- Large-scale reachability statistics
+- Dependency analysis
 
 ---
 
-### 场景4：全局查询 + DAG + 需要路径信息
+### Scenario 4: Global Query + DAG + Path Information
 
 ```
-问题：每个点到其他点的最长路径？最短路径？
+Problem: Longest/shortest path from each node to others?
 ```
 
-**✅ 使用：拓扑排序 + DP**
+**✅ Use: Topological Sort + DP**
 
 ```cpp
-int dp[MAXN];  // dp[u] = 从u出发的最长路径
+int dp[MAXN];  // dp[u] = longest path from u
 
 void topoSort() {
     queue<int> q;
@@ -176,93 +174,218 @@ void topoSort() {
 }
 ```
 
-**适用场景**：
-- DAG最长路/最短路
-- 关键路径
-- 工程进度安排
+**Use Cases**:
+- Longest/shortest path in DAG
+- Critical path
+- Project scheduling
 
 ---
 
-## 三、快速决策表
+## III. Quick Decision Table
 
-| 场景 | 图类型 | 规模 | 查询量 | 最佳算法 |
-|------|--------|------|--------|----------|
-| 单点可达性 | 任意 | 任意 | 1次 | **DFS/BFS** |
-| 单源最短路 | 无权 | 任意 | 1次 | **BFS** |
-| 全局可达性 | 一般图 | 小(N≤5K) | N次 | **DFS记忆化** |
-| 全局可达性 | DAG | 大(N≤3W) | N次 | **拓扑+Bitset** |
-| 路径长度 | DAG | 任意 | N次 | **拓扑+DP** |
-| 强连通分量 | 有向图 | 任意 | 1次 | **Tarjan/Kosaraju** |
-| 传递闭包 | DAG | 大 | N² | **拓扑+Bitset** |
-| 传递闭包 | 一般图 | 小 | N² | **Floyd** |
-
----
-
-## 四、Bitset使用条件
-
-**必须同时满足：**
-
-1. ✅ **需要集合操作**（并、交、计数）
-2. ✅ **大规模数据**（N ≥ 10000）
-3. ✅ **时间紧张**（普通方法会TLE）
-4. ✅ **DAG或有好的处理顺序**
-
-**典型应用：**
-- DAG传递闭包
-- 子集DP优化
-- 状态压缩DP
-- 大规模可达性分析
+| Scenario | Graph Type | Scale | Queries | Best Algorithm |
+|----------|-----------|-------|---------|----------------|
+| Single-node reachability | Any | Any | 1 | **DFS/BFS** |
+| Single-source shortest path | Unweighted | Any | 1 | **BFS** |
+| Global reachability | General | Small(N≤5K) | N | **DFS + Memo** |
+| Global reachability | DAG | Large(N≤30K) | N | **Topo + Bitset** |
+| Path length | DAG | Any | N | **Topo + DP** |
+| Strongly connected components | Directed | Any | 1 | **Tarjan/Kosaraju** |
+| Transitive closure | DAG | Large | N² | **Topo + Bitset** |
+| Transitive closure | General | Small | N² | **Floyd** |
 
 ---
 
-## 五、实战例题分类
+## IV. When to Use Bitset
 
-### 用 DFS/BFS
-- 岛屿数量
-- 迷宫问题
-- 二分图判定
-- 无权图最短路
+**Must satisfy ALL:**
 
-### 用 DFS记忆化
-- 中等规模图的可达性
-- 记忆化搜索
-- 树形DP
+1. ✅ **Set operations needed** (union, intersection, count)
+2. ✅ **Large scale data** (N ≥ 10000)
+3. ✅ **Time-critical** (normal approach will TLE)
+4. ✅ **DAG or good processing order**
 
-### 用 拓扑+Bitset
-- **本题：DAG可达点统计**
-- 课程安排问题（依赖关系）
-- 有向无环图的传递闭包
-- 大规模继承关系查询
-
-### 用 拓扑+DP
-- DAG最长路
-- 工程排期（关键路径）
-- 依赖关系的最优化
+**Typical Applications:**
+- DAG transitive closure
+- Subset DP optimization
+- Bitmask DP
+- Large-scale reachability analysis
 
 ---
 
-## 六、记忆口诀
+## V. Practice Problem Categories
+
+### Use DFS/BFS
+- Number of islands
+- Maze problems
+- Bipartite graph detection
+- Shortest path in unweighted graph
+
+### Use DFS + Memoization
+- Medium-scale graph reachability
+- Memoized search
+- Tree DP
+
+### Use Topo + Bitset
+- **This problem: DAG reachable node counting**
+- Course scheduling (dependency)
+- Transitive closure in DAG
+- Large-scale inheritance queries
+
+### Use Topo + DP
+- Longest path in DAG
+- Project scheduling (critical path)
+- Optimization with dependencies
+
+---
+
+## VI. Memory Trick
 
 ```
-单点查询 DFS/BFS
-全局有环 加记忆化
-全局无环 拓扑排序
-数据巨大 Bitset加持
+Single query → DFS/BFS
+Global + cycles → Add memoization
+Global + no cycles → Topological sort
+Huge data → Bitset boost
 ```
 
 ---
 
-## 七、性能对比（N=30000, M=30000）
+## VII. Performance Comparison (N=30000, M=30000)
 
-| 算法 | 时间复杂度 | 实际操作数 | 结果 |
-|------|-----------|-----------|------|
-| 朴素DFS×N | O(N²) | 9×10⁸ | ❌ TLE |
-| DFS记忆化(无bitset) | O(N×M) | 9×10⁸ | ❌ TLE |
-| 拓扑+普通集合 | O(M×N) | 9×10⁸ | ❌ TLE |
-| **拓扑+Bitset** | O(M×N/64) | **1.4×10⁷** | ✅ AC |
-| **DFS记忆化+Bitset** | O(M×N/64) | **1.4×10⁷** | ✅ AC |
+| Algorithm | Time Complexity | Actual Operations | Result |
+|-----------|----------------|-------------------|--------|
+| Naive DFS×N | O(N²) | 9×10⁸ | ❌ TLE |
+| DFS + Memo (no bitset) | O(N×M) | 9×10⁸ | ❌ TLE |
+| Topo + normal set | O(M×N) | 9×10⁸ | ❌ TLE |
+| **Topo + Bitset** | O(M×N/64) | **1.4×10⁷** | ✅ AC |
+| **DFS + Memo + Bitset** | O(M×N/64) | **1.4×10⁷** | ✅ AC |
 
-关键：**64倍优化**使不可能变可能！
+Key: **64x optimization** makes the impossible possible!
 
+---
 
-✨ *End of Graph Theory Summary*
+## VIII. Bitset Fundamentals
+
+### What is Bitset?
+
+A bitset is a fixed-size sequence of bits that can be manipulated efficiently.
+
+```cpp
+bitset<100> bs;    // 100 bits, initially all 0
+bs[5] = 1;         // Set bit 5 to 1
+bs.set(10);        // Set bit 10 to 1
+bs.count();        // Count number of 1s
+bs1 |= bs2;        // Bitwise OR: O(N/64) instead of O(N)
+```
+
+### Why 64x Faster?
+
+```cpp
+// Normal set merge: O(N)
+for (int x : reachable[v]) {
+    reachable[u].insert(x);
+}
+
+// Bitset merge: O(N/64), one CPU instruction handles 64 bits
+reachable[u] |= reachable[v];  // Single bitwise operation!
+```
+
+### Common Bitset Operations
+
+```cpp
+bitset<N> bs;
+
+bs.set();           // Set all bits to 1
+bs.reset();         // Set all bits to 0
+bs.set(pos);        // Set bit at pos to 1
+bs.reset(pos);      // Set bit at pos to 0
+bs.flip();          // Flip all bits
+bs.count();         // Count 1s
+bs.any();           // Check if any bit is 1
+bs.none();          // Check if no bit is 1
+bs.test(pos);       // Check if bit at pos is 1
+
+// Bitwise operations (O(N/64))
+bs1 & bs2;          // AND
+bs1 | bs2;          // OR
+bs1 ^ bs2;          // XOR
+~bs1;               // NOT
+```
+
+---
+
+## IX. Why Topological Sort Works Better than DFS Memoization
+
+While both have the same time complexity O(M×N/64), topological sort has advantages:
+
+### Topological Sort Advantages
+1. **Clear ordering**: Processes strictly by dependency, logic is clearer
+2. **Space friendly**: Uses queue, small stack depth
+3. **More intuitive**: Propagates reachability from "end" to "start"
+
+### DFS Memoization Advantages
+1. **Shorter code**: No need to maintain indegree and queue
+2. **Flexible**: Can process partial nodes
+
+---
+
+## X. Real Implementation Tips
+
+### Tip 1: Always Check for DAG
+```cpp
+// If not sure if graph is DAG, detect cycles first
+bool hasCycle = false;
+bool in_stack[MAXN];
+
+void checkCycle(int u) {
+    visited[u] = true;
+    in_stack[u] = true;
+    for (int v : graph[u]) {
+        if (in_stack[v]) {
+            hasCycle = true;
+            return;
+        }
+        if (!visited[v]) checkCycle(v);
+    }
+    in_stack[u] = false;
+}
+```
+
+### Tip 2: Bitset Size Must Be Compile-time Constant
+```cpp
+// ✅ Correct
+bitset<30005> reachable[30005];
+
+// ❌ Wrong - n is runtime variable
+bitset<n> reachable[n];
+```
+
+### Tip 3: Handle Duplicate Edges
+```cpp
+// Method 1: Use set to avoid duplicates
+set<pair<int,int>> edges;
+
+// Method 2: Just ignore, doesn't affect correctness
+// Duplicate edges only slightly increase operations
+```
+
+---
+
+## XI. Interview Quick Reference
+
+**Interviewer asks: "Given a DAG, find reachable nodes for all nodes"**
+
+**Your thought process (say out loud):**
+
+1. "This is a global query problem on a DAG"
+2. "For small N, DFS memoization works"
+3. "But if N is large (~30000), I need topological sort + bitset"
+4. "The key insight is: process nodes in topological order, so when we process node u, all its descendants are already computed"
+5. "Using bitset gives us 64x speedup on set operations"
+6. "Time complexity: O(M × N/64), which is acceptable for N=30000"
+
+**This shows you understand:**
+- Problem categorization
+- Complexity analysis
+- Optimization techniques
+- Trade-offs between approaches
