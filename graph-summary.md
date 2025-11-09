@@ -1,80 +1,268 @@
 # 🕸️ Graph Theory Summary
 
-## 1. Basic Concepts
-- A **graph** is defined as \( G = (V, E) \), where  
-  \( V \) = set of vertices (nodes)  
-  \( E \) = set of edges (connections between nodes)
-- **Directed graph** vs **Undirected graph**
-- **Weighted** vs **Unweighted** graphs
-- **Adjacency matrix** and **Adjacency list** representations
+# 图算法选择决策指南
+
+## 一、核心判断维度
+
+### 1. 查询范围
+- **单源查询**：只需要从一个或少数几个点出发
+- **全局查询**：需要从所有点/大量点出发
+
+### 2. 图的性质
+- **有向无环图(DAG)**：有拓扑序
+- **一般图**：可能有环
+
+### 3. 数据规模与性能要求
+- 点数 N、边数 M
+- 是否需要位运算优化
 
 ---
 
-## 2. Core Algorithms
+## 二、算法选择决策树
 
-### 🔹 BFS (Breadth-First Search)
-- Explores nodes level by level  
-- Finds the **shortest path** in an unweighted graph  
-- Time complexity: **O(V + E)**  
+### 场景1：单源/少量源查询
 
-### 🔹 DFS (Depth-First Search)
-- Explores as deep as possible before backtracking  
-- Used for **connectivity**, **cycle detection**, and **topological sorting**  
-- Time complexity: **O(V + E)**
+```
+问题：从点 s 出发能到达哪些点？
+      从点 s 到点 t 是否存在路径？
+```
 
-### 🔹 Shortest Path Algorithms
-| Algorithm | Description | Handles Negative Weights? |
-|------------|--------------|---------------------------|
-| **Dijkstra** | Greedy algorithm using a priority queue | ❌ |
-| **Bellman-Ford** | Dynamic programming approach | ✅ |
-| **Floyd-Warshall** | All-pairs shortest paths | ✅ |
+**✅ 使用：普通 DFS/BFS**
 
-### 🔹 Minimum Spanning Tree (MST)
-- Connects all vertices with minimum total edge weight  
-- **Kruskal’s Algorithm** (Union-Find)  
-- **Prim’s Algorithm** (Greedy expansion)
+```cpp
+// DFS版本
+bool visited[MAXN];
+void dfs(int u) {
+    visited[u] = true;
+    for (int v : graph[u]) {
+        if (!visited[v]) dfs(v);
+    }
+}
 
-### 🔹 Topological Sort
-- Applicable only to **DAGs (Directed Acyclic Graphs)**  
-- Implemented via DFS or Kahn’s algorithm (using in-degree)
+// BFS版本
+void bfs(int start) {
+    queue<int> q;
+    q.push(start);
+    visited[start] = true;
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int v : graph[u]) {
+            if (!visited[v]) {
+                visited[v] = true;
+                q.push(v);
+            }
+        }
+    }
+}
+```
 
----
-
-## 3. Advanced Topics
-- **Strongly Connected Components (SCC)** — Tarjan / Kosaraju algorithms  
-- **Bipartite Graphs** — checking 2-colorability  
-- **Eulerian Path / Circuit** — visiting every edge once  
-- **Hamiltonian Path** — visiting every vertex once (NP-hard)  
-- **Network Flow** — Ford–Fulkerson / Edmonds–Karp / Dinic
-
----
-
-## 4. Common Problem Patterns
-| Problem Type | Example Use | Notes |
-|---------------|-------------|-------|
-| Connectivity | Counting connected components | DFS / BFS |
-| Shortest Path | Road network, graph traversal | Dijkstra |
-| Graph Cloning | Copying a graph structure | BFS / DFS |
-| Topological Order | Course schedule problems | DAGs only |
-| MST | Minimizing connection cost | Kruskal / Prim |
+**时间复杂度**：O(N + M)  
+**空间复杂度**：O(N)  
+**适用场景**：
+- 单源最短路（BFS用于无权图）
+- 连通性判断
+- 路径搜索
+- 偶尔查询某个点的可达性
 
 ---
 
-## 5. LeetCode Practice Examples
-| Problem | Algorithm |
-|----------|------------|
-| 200 — Number of Islands | DFS / BFS |
-| 133 — Clone Graph | DFS / BFS |
-| 207 — Course Schedule | Topological Sort |
-| 743 — Network Delay Time | Dijkstra |
-| 1631 — Path With Minimum Effort | Dijkstra + Binary Search |
+### 场景2：全局查询 + 一般图
+
+```
+问题：每个点分别能到达多少个点？（图可能有环）
+```
+
+**✅ 使用：DFS/BFS + 记忆化（不用bitset）**
+
+```cpp
+vector<int> reachable[MAXN];
+bool visited[MAXN];
+bool in_stack[MAXN];  // 检测环
+
+void dfs(int u) {
+    if (visited[u]) return;
+    visited[u] = true;
+    in_stack[u] = true;
+    
+    reachable[u].push_back(u);
+    
+    for (int v : graph[u]) {
+        if (in_stack[v]) continue;  // 有环，跳过
+        dfs(v);
+        for (int x : reachable[v]) {
+            reachable[u].push_back(x);
+        }
+    }
+    
+    in_stack[u] = false;
+}
+```
+
+**时间复杂度**：O(N × M)  
+**为什么不用bitset**：一般图没有好的处理顺序，bitset优势不明显  
+**适用场景**：
+- 中小规模图（N ≤ 5000）
+- 可能有环的图
+- 需要存储具体可达节点（不只是计数）
 
 ---
 
-## 6. Summary
-> Graph theory is about **relationships between objects**.  
-> Mastering traversal (DFS/BFS) and modeling techniques opens the door to most algorithmic problems.
+### 场景3：全局查询 + DAG + 大规模
+
+```
+问题：每个点分别能到达多少个点？（DAG，N ≤ 30000）
+```
+
+**✅ 使用：拓扑排序 + Bitset**
+
+```cpp
+bitset<MAXN> reachable[MAXN];
+int indegree[MAXN];
+
+void topoSort() {
+    queue<int> q;
+    for (int i = 1; i <= n; i++) {
+        if (indegree[i] == 0) q.push(i);
+        reachable[i][i] = 1;
+    }
+    
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int v : graph[u]) {
+            reachable[v] |= reachable[u];  // O(N/64)
+            if (--indegree[v] == 0) q.push(v);
+        }
+    }
+}
+```
+
+**时间复杂度**：O(M × N/64)  
+**关键优势**：
+- 拓扑序保证每个点只处理一次
+- Bitset将集合合并优化64倍
+- 64倍常数优化是AC关键！
+
+**适用场景**：
+- DAG上的传递闭包
+- 大规模可达性统计
+- 依赖关系分析
 
 ---
+
+### 场景4：全局查询 + DAG + 需要路径信息
+
+```
+问题：每个点到其他点的最长路径？最短路径？
+```
+
+**✅ 使用：拓扑排序 + DP**
+
+```cpp
+int dp[MAXN];  // dp[u] = 从u出发的最长路径
+
+void topoSort() {
+    queue<int> q;
+    for (int i = 1; i <= n; i++) {
+        if (indegree[i] == 0) q.push(i);
+    }
+    
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int v : graph[u]) {
+            dp[v] = max(dp[v], dp[u] + 1);
+            if (--indegree[v] == 0) q.push(v);
+        }
+    }
+}
+```
+
+**适用场景**：
+- DAG最长路/最短路
+- 关键路径
+- 工程进度安排
+
+---
+
+## 三、快速决策表
+
+| 场景 | 图类型 | 规模 | 查询量 | 最佳算法 |
+|------|--------|------|--------|----------|
+| 单点可达性 | 任意 | 任意 | 1次 | **DFS/BFS** |
+| 单源最短路 | 无权 | 任意 | 1次 | **BFS** |
+| 全局可达性 | 一般图 | 小(N≤5K) | N次 | **DFS记忆化** |
+| 全局可达性 | DAG | 大(N≤3W) | N次 | **拓扑+Bitset** |
+| 路径长度 | DAG | 任意 | N次 | **拓扑+DP** |
+| 强连通分量 | 有向图 | 任意 | 1次 | **Tarjan/Kosaraju** |
+| 传递闭包 | DAG | 大 | N² | **拓扑+Bitset** |
+| 传递闭包 | 一般图 | 小 | N² | **Floyd** |
+
+---
+
+## 四、Bitset使用条件
+
+**必须同时满足：**
+
+1. ✅ **需要集合操作**（并、交、计数）
+2. ✅ **大规模数据**（N ≥ 10000）
+3. ✅ **时间紧张**（普通方法会TLE）
+4. ✅ **DAG或有好的处理顺序**
+
+**典型应用：**
+- DAG传递闭包
+- 子集DP优化
+- 状态压缩DP
+- 大规模可达性分析
+
+---
+
+## 五、实战例题分类
+
+### 用 DFS/BFS
+- 岛屿数量
+- 迷宫问题
+- 二分图判定
+- 无权图最短路
+
+### 用 DFS记忆化
+- 中等规模图的可达性
+- 记忆化搜索
+- 树形DP
+
+### 用 拓扑+Bitset
+- **本题：DAG可达点统计**
+- 课程安排问题（依赖关系）
+- 有向无环图的传递闭包
+- 大规模继承关系查询
+
+### 用 拓扑+DP
+- DAG最长路
+- 工程排期（关键路径）
+- 依赖关系的最优化
+
+---
+
+## 六、记忆口诀
+
+```
+单点查询 DFS/BFS
+全局有环 加记忆化
+全局无环 拓扑排序
+数据巨大 Bitset加持
+```
+
+---
+
+## 七、性能对比（N=30000, M=30000）
+
+| 算法 | 时间复杂度 | 实际操作数 | 结果 |
+|------|-----------|-----------|------|
+| 朴素DFS×N | O(N²) | 9×10⁸ | ❌ TLE |
+| DFS记忆化(无bitset) | O(N×M) | 9×10⁸ | ❌ TLE |
+| 拓扑+普通集合 | O(M×N) | 9×10⁸ | ❌ TLE |
+| **拓扑+Bitset** | O(M×N/64) | **1.4×10⁷** | ✅ AC |
+| **DFS记忆化+Bitset** | O(M×N/64) | **1.4×10⁷** | ✅ AC |
+
+关键：**64倍优化**使不可能变可能！
+
 
 ✨ *End of Graph Theory Summary*
