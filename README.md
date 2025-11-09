@@ -15,14 +15,6 @@ I’ll keep updating each section and turning this into a systematic knowledge b
 
 ---
 
-## 💡 Writing Notes
-- Each topic should go into its own file, e.g. `graph-summary.md`
-- Use `#` for main titles and `##` for subtitles  
-- Use `-` or `*` for bullet points  
-- Add internal links in this README to connect different topics
-
----
-
 ## 🛠️ Update Log
 - **2025.11.09** — Repository created, added the first draft of Graph Theory notes  
 - *(Upcoming)* — Add Dynamic Programming and Number Theory sections
